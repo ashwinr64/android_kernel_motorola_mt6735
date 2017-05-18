@@ -320,11 +320,11 @@ static void set_dummy(void)
 
 static kal_uint32 return_sensor_id(void)
 {
-	return ((read_cmos_sensor(0x0000) << 8) | read_cmos_sensor(0x0001));
+	//return ((read_cmos_sensor(0x0000) << 8) | read_cmos_sensor(0x0001));
 	//int sensorid;
 	//sensorid =  ((read_cmos_sensor(0x0000) << 8) | read_cmos_sensor(0x0001));
 	//LOG_INF("read sensor id:%x", sensorid);
-	//return 0x0219;
+	return IMX219_SENSOR_ID;
 }
 static void set_max_framerate(UINT16 framerate,kal_bool min_framelength_en)
 {

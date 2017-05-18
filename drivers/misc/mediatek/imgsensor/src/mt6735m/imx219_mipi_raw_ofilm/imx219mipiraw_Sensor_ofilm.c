@@ -320,11 +320,11 @@ static void set_dummy(void)
 
 static kal_uint32 return_sensor_id(void)
 {
-	return ((read_cmos_sensor(0x0000) << 8) | read_cmos_sensor(0x0001));
+	//return ((read_cmos_sensor(0x0000) << 8) | read_cmos_sensor(0x0001));
 	//int sensorid;
 	//sensorid =  ((read_cmos_sensor(0x0000) << 8) | read_cmos_sensor(0x0001));
 	//LOG_INF_OFILM("read sensor id:%x", sensorid);
-	//return 0x0219;
+	return IMX219_OFILM_SENSOR_ID;
 }
 static void set_max_framerate(UINT16 framerate,kal_bool min_framelength_en)
 {
@@ -1166,7 +1166,6 @@ static kal_uint32 get_imgsensor_id(UINT32 *sensor_id)
 		spin_unlock(&imgsensor_drv_lock);
 		do {
 			*sensor_id = return_sensor_id();
-			*sensor_id = *sensor_id + 2;
 			if (*sensor_id == imgsensor_info.sensor_id) {				
 				printk("Ofilm:imx219=>i2c write id: 0x%x, sensor id: 0x%x\n", imgsensor.i2c_write_id,*sensor_id);	  
 				break;
@@ -1234,7 +1233,6 @@ static kal_uint32 open(void)
 		spin_unlock(&imgsensor_drv_lock);
 		do {
 			sensor_id = return_sensor_id();			
-			sensor_id = sensor_id + 2;
 			if (sensor_id == imgsensor_info.sensor_id) {				
 				LOG_INF_OFILM("Ofilm:i2c write id: 0x%x, sensor id: 0x%x\n", imgsensor.i2c_write_id,sensor_id);	  
 				break;
