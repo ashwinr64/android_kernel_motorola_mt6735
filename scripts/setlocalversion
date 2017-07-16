@@ -164,8 +164,8 @@ else
 	# append a plus sign if the repository is not in a clean
 	# annotated or signed tagged state (as git describe only
 	# looks at signed or annotated tags - git tag -a/-s) and
-	# LOCALVERSION= is not specified
-	if test "${LOCALVERSION+set}" != "set"; then
+	# CONFIG_LOCALVERSION= is not specified
+	if test "${CONFIG_LOCALVERSION+set}" != "set"; then
 		scm=$(scm_version --short)
 		res="$res${scm:++}"
 	fi
