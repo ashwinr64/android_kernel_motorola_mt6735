@@ -423,7 +423,7 @@ typedef struct {
 typedef struct {
 	unsigned char cmd;
 	unsigned char count;
-	unsigned char para_list[2];
+	unsigned char para_list[4];//modify by caozhg
 } LCM_esd_check_item;
 typedef enum {
 	DUAL_DSI_NONE = 0x0,
@@ -624,6 +624,7 @@ typedef struct {
 } LCM_PARAMS;
 
 
+#if defined(MTK_LCM_DEVICE_TREE_SUPPORT)
 typedef struct {
 	char data;
 	char padding[131];
@@ -686,10 +687,11 @@ typedef struct {
 
 	LCM_PARAMS params;
 	LCM_DATA init[256];
-	LCM_DATA compare_id[8];
-	LCM_DATA suspend[8];
-	LCM_DATA backlight[8];
+	LCM_DATA compare_id[32];
+	LCM_DATA suspend[32];
+	LCM_DATA backlight[32];
 } LCM_DTS;
+#endif
 
 
 /* --------------------------------------------------------------------------- */
@@ -740,6 +742,7 @@ typedef struct {
 	int (*set_gpio_dir)(unsigned int pin, unsigned int dir);
 	int (*set_gpio_pull_enable)(unsigned int pin, unsigned char pull_en);
 	long (*set_gpio_lcd_enp_bias)(unsigned int value);
+	long (*set_gpio_lcd_enn_bias)(unsigned int value);//add by caozhg
 	void (*dsi_set_cmdq_V11)(void *cmdq, unsigned int *pdata, unsigned int queue_size,
 				  unsigned char force_update);
 	void (*dsi_set_cmdq_V22)(void *cmdq, unsigned cmd, unsigned char count,
@@ -768,7 +771,9 @@ typedef struct {
 
 	void (*update)(unsigned int x, unsigned int y, unsigned int width, unsigned int height);
 	unsigned int (*compare_id)(void);
+#if defined(MTK_LCM_DEVICE_TREE_SUPPORT)
 	void (*parse_dts)(const LCM_DTS *DTS, unsigned char force_update);
+#endif
 
 	/* /////////////////////////CABC backlight related function */
 	void (*set_backlight)(unsigned int level);

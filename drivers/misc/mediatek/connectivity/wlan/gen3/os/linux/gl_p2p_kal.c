@@ -786,7 +786,8 @@ kalGetChnlList(IN P_GLUE_INFO_T prGlueInfo,
 	       IN ENUM_BAND_T eSpecificBand,
 	       IN UINT_8 ucMaxChannelNum, IN PUINT_8 pucNumOfChannel, IN P_RF_CHANNEL_INFO_T paucChannelList)
 {
-	rlmDomainGetChnlList(prGlueInfo->prAdapter, eSpecificBand, ucMaxChannelNum, pucNumOfChannel, paucChannelList);
+	rlmDomainGetChnlList(prGlueInfo->prAdapter, eSpecificBand, FALSE, ucMaxChannelNum,
+			     pucNumOfChannel, paucChannelList);
 }				/* kalGetChnlList */
 
 /* ////////////////////////////////////ICS SUPPORT////////////////////////////////////// */
@@ -882,23 +883,21 @@ VOID kalP2PIndicateScanDone(IN P_GLUE_INFO_T prGlueInfo, IN UINT_8 ucRoleIndex, 
 			ASSERT(FALSE);
 			break;
 		}
-
-		DBGLOG(INIT, INFO, "[p2p] scan complete %p\n", prGlueP2pInfo->prScanRequest);
+		DBGLOG(P2P, EVENT, "scan complete, cfg80211 scan request is %p\n", prGlueInfo->prScanRequest);
 
 		GLUE_ACQUIRE_SPIN_LOCK(prGlueInfo, SPIN_LOCK_NET_DEV);
 
 		if (prGlueP2pInfo->prScanRequest != NULL) {
 			prScanRequest = prGlueP2pInfo->prScanRequest;
 			prGlueP2pInfo->prScanRequest = NULL;
-		}
+		} else
+			DBGLOG(P2P, WARN, "[p2p] scan complete but cfg80211 scan request is NULL\n");
 		GLUE_RELEASE_SPIN_LOCK(prGlueInfo, SPIN_LOCK_NET_DEV);
 
 		if (prScanRequest != NULL) {
-
 			/* report all queued beacon/probe response frames  to upper layer */
 			scanReportBss2Cfg80211(prGlueInfo->prAdapter, BSS_TYPE_P2P_DEVICE, NULL);
 
-			DBGLOG(INIT, INFO, "DBG:p2p_cfg_scan_done\n");
 			cfg80211_scan_done(prScanRequest, fgIsAbort);
 		}
 
@@ -1051,7 +1050,8 @@ VOID
 kalP2PGCIndicateConnectionStatus(IN P_GLUE_INFO_T prGlueInfo,
 				 IN UINT_8 ucRoleIndex,
 				 IN P_P2P_CONNECTION_REQ_INFO_T prP2pConnInfo,
-				 IN PUINT_8 pucRxIEBuf, IN UINT_16 u2RxIELen, IN UINT_16 u2StatusReason)
+				 IN PUINT_8 pucRxIEBuf, IN UINT_16 u2RxIELen, IN UINT_16 u2StatusReason,
+				 IN WLAN_STATUS eStatus)
 {
 	P_GL_P2P_INFO_T prGlueP2pInfo = (P_GL_P2P_INFO_T) NULL;
 
@@ -1079,7 +1079,8 @@ kalP2PGCIndicateConnectionStatus(IN P_GLUE_INFO_T prGlueInfo,
 			/* Disconnect, what if u2StatusReason == 0? */
 			cfg80211_disconnected(prGlueP2pInfo->aprRoleHandler[ucRoleIndex],
 						/* struct net_device * dev, */
-					      u2StatusReason, pucRxIEBuf, u2RxIELen, GFP_KERNEL);
+					      u2StatusReason, pucRxIEBuf, u2RxIELen,
+					      eStatus == WLAN_STATUS_MEDIA_DISCONNECT_LOCALLY, GFP_KERNEL);
 		}
 
 	} while (FALSE);

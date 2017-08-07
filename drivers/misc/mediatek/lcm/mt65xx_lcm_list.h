@@ -92,6 +92,7 @@ extern LCM_DRIVER hx8369a_wvga_dsi_cmd_drv;
 extern LCM_DRIVER hx8369a_wvga_dsi_vdo_drv;
 extern LCM_DRIVER hx8392a_dsi_cmd_lcm_drv;
 extern LCM_DRIVER hx8392a_dsi_cmd_3lane_lcm_drv;
+extern LCM_DRIVER hx8392a_dsi_cmd_3lane_qhd_lcm_drv;
 extern LCM_DRIVER hx8392a_dsi_cmd_wvga_lcm_drv;
 extern LCM_DRIVER hx8392a_dsi_cmd_fwvga_lcm_drv;
 extern LCM_DRIVER hx8392a_dsi_cmd_qhd_lcm_drv;
@@ -139,6 +140,7 @@ extern LCM_DRIVER otm9608_wvga_dsi_cmd_drv;
 extern LCM_DRIVER otm9608_fwvga_dsi_cmd_drv;
 extern LCM_DRIVER otm9608_qhd_dsi_cmd_drv;
 extern LCM_DRIVER otm9608_qhd_dsi_vdo_drv;
+extern LCM_DRIVER hx8394f_boe_720p_vdo_drv;
 extern LCM_DRIVER otm8009a_fwvga_dsi_cmd_tianma_lcm_drv;
 extern LCM_DRIVER otm8009a_fwvga_dsi_vdo_tianma_lcm_drv;
 extern LCM_DRIVER hx8389b_qhd_dsi_vdo_tianma_lcm_drv;
@@ -234,6 +236,9 @@ extern LCM_DRIVER nt35595_fhd_dsi_cmd_truly_nt50358_extern_lcm_drv;
 extern LCM_DRIVER r69429_wqxga_dsi_vdo_lcm_drv;
 extern LCM_DRIVER hx8394c_wxga_dsi_vdo_lcm_drv;
 extern LCM_DRIVER nt35595_truly_fhd_dsi_vdo_lcm_drv;
+extern LCM_DRIVER b080uan01_2_wuxga_dsi_vdo_lcm_drv;
+extern LCM_DRIVER tm050_tianma_720p_vdo_drv;//add by yufangfang
+extern LCM_DRIVER dummy_lcd_lcm_drv;
 #endif
 
 #ifdef BUILD_LK

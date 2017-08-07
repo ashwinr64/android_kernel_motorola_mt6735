@@ -122,7 +122,8 @@ int battery_cmd_thermal_test_mode = 0;
 int battery_cmd_thermal_test_mode_value = 0;
 int g_battery_tt_check_flag = 0;
 /* 0:default enable check batteryTT, 1:default disable check batteryTT */
-
+//chg_current for smart tool
+static int g_battery_chg_current = 0;
 
 /*
  *  Global Variable
@@ -230,6 +231,10 @@ int g_present_smb = 0;
 static int cmd_discharging = -1;
 static int adjust_power = -1;
 static int suspend_discharging = -1;
+
+#if !defined(CONFIG_POWER_EXT)
+static int is_uisoc_ever_100 = KAL_FALSE;
+#endif
 
 /* ////////////////////////////////////////////////////////////////////////////// */
 /* FOR ANDROID BATTERY SERVICE */
@@ -416,7 +421,8 @@ void wake_up_bat(void)
 #ifdef MTK_ENABLE_AGING_ALGORITHM
 	suspend_time = 0;
 #endif
-	_g_bat_sleep_total_time = 0;
+	battery_meter_reset_sleep_time();
+
 	wake_up(&bat_thread_wq);
 }
 EXPORT_SYMBOL(wake_up_bat);
@@ -433,11 +439,25 @@ void wake_up_bat2(void)
 #ifdef MTK_ENABLE_AGING_ALGORITHM
 	suspend_time = 0;
 #endif
-	_g_bat_sleep_total_time = 0;
+	battery_meter_reset_sleep_time();
 	wake_up(&bat_thread_wq);
 }
 EXPORT_SYMBOL(wake_up_bat2);
 #endif				/* #ifdef FG_BAT_INT */
+
+void wake_up_bat3(void)
+{
+	battery_log(BAT_LOG_CRTI, "[BATTERY] wake_up_bat3. \r\n");
+
+	bat_thread_timeout = KAL_TRUE;
+#ifdef MTK_ENABLE_AGING_ALGORITHM
+	suspend_time = 0;
+#endif
+	battery_meter_reset_sleep_time();
+	wake_up(&bat_thread_wq);
+}
+EXPORT_SYMBOL(wake_up_bat3);
+
 
 
 
@@ -701,6 +721,38 @@ static struct battery_data battery_main = {
 	.adjust_power = -1,
 #endif
 };
+
+/*Lenovo-sw: AIOROW-4398 thermal limit current*/
+//level:0 -normal, 1,2,3 current max to low three level
+int g_thermal_limit_current_level = 0;
+extern void thermal_pchr_turn_on_charging(void);
+static ssize_t show_thermal_limit_current(struct device *dev, struct device_attribute *attr,
+                                        char *buf)
+{
+        battery_xlog_printk(BAT_LOG_CRTI, "[EM] show_thermal_limit_current : %d\n",
+                            g_thermal_limit_current_level);
+        return sprintf(buf, "%d\n", g_thermal_limit_current_level);
+}
+
+static ssize_t store_thermal_limit_current(struct device *dev, struct device_attribute *attr,
+                                         const char *buf, size_t size)
+{
+        int data = 0;
+        ssize_t ret = -1;
+        ret = kstrtoint(buf,10,&data);
+
+        if(ret)
+                return ret;
+
+        g_thermal_limit_current_level = data;
+
+        battery_xlog_printk(BAT_LOG_CRTI, "[EM] store_thermal_limit_current :%d\n",g_thermal_limit_current_level);
+
+        thermal_pchr_turn_on_charging();
+        return size;
+}
+
+static DEVICE_ATTR(thermal_limit_current, 0664, show_thermal_limit_current, store_thermal_limit_current);
 
 
 #if !defined(CONFIG_POWER_EXT)
@@ -1686,8 +1738,19 @@ static kal_bool mt_battery_100Percent_tracking_check(void)
 			resetBatteryMeter = KAL_TRUE;
 		}
 
-		battery_log(BAT_LOG_CRTI, "[100percent], UI_SOC(%d), reset(%d)\n",
-			    BMT_status.UI_SOC, resetBatteryMeter);
+		if (BMT_status.UI_SOC == 100)
+			is_uisoc_ever_100 = KAL_TRUE;
+
+		if ((BMT_status.UI_SOC - BMT_status.SOC) > 10 && is_uisoc_ever_100 == KAL_TRUE) {
+			is_uisoc_ever_100 = KAL_FALSE;
+			BMT_status.bat_full = KAL_FALSE;
+		}
+
+		battery_log(BAT_LOG_CRTI, "[100percent], UI_SOC(%d), reset(%d) bat_full(%d) ever100(%d)\n",
+			    BMT_status.UI_SOC, resetBatteryMeter, BMT_status.bat_full, is_uisoc_ever_100);
+	} else if (is_uisoc_ever_100 == KAL_TRUE) {
+			battery_log(BAT_LOG_CRTI, "[100percent-ever100],UI_SOC=%d SOC=%d\n",
+			BMT_status.UI_SOC, BMT_status.UI_SOC);
 	} else {
 		/* charging is not full,  UI keep 99% if reaching 100%, */
 
@@ -1872,7 +1935,7 @@ static void battery_update(struct battery_data *bat_data)
 	if (resetBatteryMeter == KAL_TRUE) {
 		battery_meter_reset();
 	} else {
-		if (bat_is_recharging_phase() == KAL_TRUE) {
+		if (BMT_status.bat_full == KAL_TRUE && is_uisoc_ever_100 == KAL_TRUE) {
 			BMT_status.UI_SOC = 100;
 			battery_log(BAT_LOG_CRTI, "[recharging] UI_SOC=%d, SOC=%d\n",
 				    BMT_status.UI_SOC, BMT_status.SOC);
@@ -1915,7 +1978,7 @@ static void battery_update(struct battery_data *bat_data)
 	if (bat_data->BAT_CAPACITY <= DLPT_POWER_OFF_THD) {
 		static signed char cnt;
 
-		battery_log(BAT_LOG_CRTI, "[DLPT_POWER_OFF_EN] run\n");
+		battery_log(BAT_LOG_FULL, "[DLPT_POWER_OFF_EN] run\n");
 
 		if (dlpt_check_power_off() == 1) {
 			bat_data->BAT_CAPACITY = 0;
@@ -1928,7 +1991,7 @@ static void battery_update(struct battery_data *bat_data)
 		} else
 			cnt = 0;
 	} else {
-		battery_log(BAT_LOG_CRTI, "[DLPT_POWER_OFF_EN] disable(%d)\n",
+		battery_log(BAT_LOG_FULL, "[DLPT_POWER_OFF_EN] disable(%d)\n",
 			    bat_data->BAT_CAPACITY);
 	}
 #endif
@@ -2339,13 +2402,14 @@ void mt_battery_GetBatteryData(void)
 		g_battery_soc_ready = KAL_TRUE;
 
 	battery_log(BAT_LOG_CRTI,
-		    "AvgVbat=(%d),bat_vol=(%d),AvgI=(%d),I=(%d),VChr=(%d),AvgT=(%d),T=(%d),pre_SOC=(%d),SOC=(%d),ZCV=(%d)\n",
-		    BMT_status.bat_vol, bat_vol, BMT_status.ICharging, ICharging,
-		    BMT_status.charger_vol, BMT_status.temperature, temperature,
-		    previous_SOC, BMT_status.SOC, BMT_status.ZCV);
-
+	"AvgVbat=(%d,%d),AvgI=(%d,%d),VChr=%d,AvgT=(%d,%d),SOC=(%d,%d),UI_SOC=%d,ZCV=%d bcct:%d:%d I:%d\n",
+		BMT_status.bat_vol, bat_vol, BMT_status.ICharging, ICharging,
+		BMT_status.charger_vol, BMT_status.temperature, temperature,
+		previous_SOC, BMT_status.SOC, BMT_status.UI_SOC, BMT_status.ZCV,
+		g_bcct_flag, get_usb_current_unlimited(), get_bat_charging_current_level());
 
 }
+
 
 
 static PMU_STATUS mt_battery_CheckBatteryTemp(void)
@@ -2650,7 +2714,8 @@ void mt_battery_notify_check(void)
 
 		mt_battery_notify_VCharger_check();
 
-		mt_battery_notify_VBatTemp_check();
+		if(BMT_status.charger_exist == KAL_TRUE)
+			mt_battery_notify_VBatTemp_check();
 
 		mt_battery_notify_ICharging_check();
 
@@ -2672,9 +2737,9 @@ static void mt_battery_thermal_check(void)
 				    "[Battery] In thermal_test_mode , Tbat=%d\n",
 				    BMT_status.temperature);
 		}
-#if defined(CONFIG_MTK_JEITA_STANDARD_SUPPORT)
+//#if defined(CONFIG_MTK_JEITA_STANDARD_SUPPORT)
 		/* ignore default rule */
-#else
+//#else
 		if (BMT_status.temperature >= 60) {
 #if defined(CONFIG_POWER_EXT)
 			battery_log(BAT_LOG_CRTI,
@@ -2711,7 +2776,7 @@ static void mt_battery_thermal_check(void)
 			}
 #endif
 		}
-#endif
+//#endif
 
 	}
 
@@ -2725,13 +2790,13 @@ static void mt_battery_update_status(void)
 #else
 	{
 		if (skip_battery_update == KAL_FALSE) {
-			battery_log(BAT_LOG_CRTI, "mt_battery_update_status.\n");
+			battery_log(BAT_LOG_FULL, "mt_battery_update_status.\n");
 			usb_update(&usb_main);
 			ac_update(&ac_main);
 			wireless_update(&wireless_main);
 			battery_update(&battery_main);
 		} else {
-			battery_log(BAT_LOG_CRTI, "skip mt_battery_update_status.\n");
+			battery_log(BAT_LOG_FULL, "skip mt_battery_update_status.\n");
 			skip_battery_update = KAL_FALSE;
 		}
 	}
@@ -2868,7 +2933,7 @@ static void mt_battery_charger_detect_check(void)
 		BMT_status.TOPOFF_charging_time = 0;
 		BMT_status.POSTFULL_charging_time = 0;
 
-		battery_log(BAT_LOG_CRTI, "[BAT_thread]Cable out \r\n");
+		battery_log(BAT_LOG_FULL, "[BAT_thread]Cable out \r\n");
 
 		mt_usb_disconnect();
 
@@ -2876,7 +2941,7 @@ static void mt_battery_charger_detect_check(void)
 		is_ta_connect = KAL_FALSE;
 		ta_check_chr_type = KAL_TRUE;
 		ta_cable_out_occur = KAL_TRUE;
-		battery_log(BAT_LOG_CRTI, "[PE+] Cable OUT\n");
+		battery_log(BAT_LOG_FULL, "[PE+] Cable OUT\n");
 #endif
 
 #ifdef CONFIG_MTK_BQ25896_SUPPORT
@@ -2894,7 +2959,7 @@ static void mt_battery_charger_detect_check(void)
 static void mt_kpoc_power_off_check(void)
 {
 #ifdef CONFIG_MTK_KERNEL_POWER_OFF_CHARGING
-	battery_log(BAT_LOG_CRTI,
+	battery_log(BAT_LOG_FULL,
 		    "[mt_kpoc_power_off_check] , chr_vol=%d, boot_mode=%d\r\n",
 		    BMT_status.charger_vol, g_platform_boot_mode);
 	if (g_platform_boot_mode == KERNEL_POWER_OFF_CHARGING_BOOT
@@ -3012,7 +3077,7 @@ void do_chrdet_int_task(void)
 
 		if (BMT_status.bat_vol > 0) {
 			mt_battery_update_status();
-			skip_battery_update = KAL_TRUE;
+			//skip_battery_update = KAL_TRUE;//lishunbo remove for midtest
 
 		}
 #if defined(CONFIG_MTK_DUAL_INPUT_CHARGER_SUPPORT)
@@ -3031,6 +3096,7 @@ void do_chrdet_int_task(void)
 }
 
 
+
 void BAT_thread(void)
 {
 	static kal_bool battery_meter_initilized = KAL_FALSE;
@@ -3039,7 +3105,21 @@ void BAT_thread(void)
 		battery_meter_initial();	/* move from battery_probe() to decrease booting time */
 		BMT_status.nPercent_ZCV = battery_meter_get_battery_nPercent_zcv();
 		battery_meter_initilized = KAL_TRUE;
+#if defined(CONFIG_POWER_EXT)
+#else
+		BMT_status.SOC = battery_meter_get_battery_percentage();
+		BMT_status.UI_SOC = BMT_status.SOC;
+		BMT_status.ZCV = battery_meter_get_battery_zcv();
+
+		BMT_status.temperatureV = battery_meter_get_tempV();
+		BMT_status.temperatureR = battery_meter_get_tempR(BMT_status.temperatureV);
+		BMT_status.bat_vol = battery_meter_get_battery_voltage(KAL_TRUE);
+		BMT_status.temperature = battery_meter_get_battery_temperature();
+		battery_update(&battery_main);
+#endif
+
 	}
+
 
 	mt_battery_charger_detect_check();
 	mt_battery_GetBatteryData();
@@ -3131,6 +3211,7 @@ int bat_thread_kthread(void *x)
 	return 0;
 }
 
+
 void bat_thread_wakeup(void)
 {
 	battery_log(BAT_LOG_FULL, "******** battery : bat_thread_wakeup  ********\n");
@@ -3140,7 +3221,7 @@ void bat_thread_wakeup(void)
 #ifdef MTK_ENABLE_AGING_ALGORITHM
 	suspend_time = 0;
 #endif
-	_g_bat_sleep_total_time = 0;
+	battery_meter_reset_sleep_time();
 	wake_up(&bat_thread_wq);
 }
 
@@ -4118,6 +4199,31 @@ int batt_init_cust_data(void)
 #endif
 	return 0;
 }
+static ssize_t chg_show_i_current(struct device *dev,struct device_attribute *attr,char*buf)
+{
+	if(BMT_status.charger_exist == KAL_TRUE)
+		g_battery_chg_current = battery_meter_get_battery_current()/10;
+	else
+		g_battery_chg_current = 0;
+
+	return sprintf(buf,"%d\n",g_battery_chg_current);
+}
+
+static DEVICE_ATTR(chg_current,S_IRUGO|S_IWUSR,chg_show_i_current,NULL);
+
+int lenovo_battery_create_sys_file(struct device *dev)
+{
+	int ret = 0;
+
+	ret = device_create_file(dev,&dev_attr_chg_current);
+	if(ret)
+	{
+		battery_log(BAT_LOG_CRTI, "create lenovo_battery_create_sys_file fail\n");
+		return ret;
+	}
+
+	return ret;
+}
 
 static int battery_probe(struct platform_device *dev)
 {
@@ -4190,6 +4296,13 @@ static int battery_probe(struct platform_device *dev)
 	}
 	battery_log(BAT_LOG_CRTI, "[BAT_probe] power_supply_register Battery Success !!\n");
 
+	ret = lenovo_battery_create_sys_file(battery_main.psy.dev);
+	if(ret)
+	{
+		printk("%s,failed,lenovo device_create_file \n",__func__);
+		return ret;
+	}
+
 #if !defined(CONFIG_POWER_EXT)
 
 #ifdef CONFIG_MTK_POWER_EXT_DETECT
@@ -4209,6 +4322,8 @@ static int battery_probe(struct platform_device *dev)
 	/* For EM */
 	{
 		int ret_device_file = 0;
+		
+		ret_device_file = device_create_file(&(dev->dev), &dev_attr_thermal_limit_current);
 
 		ret_device_file = device_create_file(&(dev->dev), &dev_attr_ADC_Charger_Voltage);
 
@@ -4341,7 +4456,7 @@ static void battery_timer_pause(void)
 	battery_suspended = KAL_TRUE;
 	mutex_unlock(&bat_mutex);
 
-	battery_log(BAT_LOG_CRTI, "@bs=1@\n");
+	battery_log(BAT_LOG_FULL, "@bs=1@\n");
 #endif
 
 	get_monotonic_boottime(&g_bat_time_before_sleep);
@@ -4388,7 +4503,7 @@ static void battery_timer_resume(void)
 	hrtimer_start(&charger_hv_detect_timer, hvtime, HRTIMER_MODE_REL);
 
 	battery_suspended = KAL_FALSE;
-	battery_log(BAT_LOG_CRTI, "@bs=0@\n");
+	battery_log(BAT_LOG_FULL, "@bs=0@\n");
 	mutex_unlock(&bat_mutex);
 
 #endif
@@ -4856,13 +4971,13 @@ static int battery_pm_event(struct notifier_block *notifier, unsigned long pm_ev
 	case PM_HIBERNATION_PREPARE:	/* Going to hibernate */
 	case PM_RESTORE_PREPARE:	/* Going to restore a saved image */
 	case PM_SUSPEND_PREPARE:	/* Going to suspend the system */
-		pr_warn("[%s] pm_event %lu\n", __func__, pm_event);
+		pr_debug("[%s] pm_event %lu\n", __func__, pm_event);
 		battery_timer_pause();
 		return NOTIFY_DONE;
 	case PM_POST_HIBERNATION:	/* Hibernation finished */
 	case PM_POST_SUSPEND:	/* Suspend finished */
 	case PM_POST_RESTORE:	/* Restore failed */
-		pr_warn("[%s] pm_event %lu\n", __func__, pm_event);
+		pr_debug("[%s] pm_event %lu\n", __func__, pm_event);
 		battery_timer_resume();
 		return NOTIFY_DONE;
 	}

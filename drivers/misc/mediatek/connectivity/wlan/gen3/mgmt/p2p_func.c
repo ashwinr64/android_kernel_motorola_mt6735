@@ -842,6 +842,12 @@ VOID p2pFuncAcquireCh(IN P_ADAPTER_T prAdapter, IN UINT_8 ucBssIdx, IN P_P2P_CHN
 		prMsgChReq->ucBssIndex = ucBssIdx;
 		prMsgChReq->ucTokenID = ++prChnlReqInfo->ucSeqNumOfChReq;
 		prMsgChReq->eReqType = prChnlReqInfo->eChnlReqType;
+		if (prChnlReqInfo->u4MaxInterval != P2P_OFF_CHNL_TX_DEFAULT_TIME_MS)
+			prMsgChReq->u4MaxInterval = P2P_EXT_LISTEN_TIME_MS;
+		else if (prChnlReqInfo->u4MaxInterval == P2P_OFF_CHNL_TX_DEFAULT_TIME_MS)
+			prMsgChReq->u4MaxInterval = P2P_OFF_CHNL_TX_DEFAULT_TIME_MS;
+		else
+			prMsgChReq->u4MaxInterval = prChnlReqInfo->u4MaxInterval;
 		prMsgChReq->u4MaxInterval = prChnlReqInfo->u4MaxInterval;
 		prMsgChReq->ucPrimaryChannel = prChnlReqInfo->ucReqChnlNum;
 		prMsgChReq->eRfSco = prChnlReqInfo->eChnlSco;
@@ -1191,7 +1197,8 @@ p2pFuncDissolve(IN P_ADAPTER_T prAdapter,
 			if (prP2pBssInfo->prStaRecOfAP) {
 				kalP2PGCIndicateConnectionStatus(prAdapter->prGlueInfo,
 								 (UINT_8) prP2pBssInfo->u4PrivateData, NULL, NULL, 0,
-								 REASON_CODE_DEAUTH_LEAVING_BSS);
+								 REASON_CODE_DEAUTH_LEAVING_BSS,
+								 WLAN_STATUS_MEDIA_DISCONNECT_LOCALLY);
 
 				/* 2012/02/14 frog: After formation before join group, prStaRecOfAP is NULL. */
 				p2pFuncDisconnect(prAdapter,
@@ -2131,8 +2138,7 @@ p2pFuncParseBeaconVenderId(IN P_ADAPTER_T prAdapter, IN PUINT_8 pucIE,
 				   pucIE, IE_SIZE(pucIE));
 
 			prP2pSpecificBssInfo->u2AttributeLen += IE_SIZE(pucIE);
-			DBGLOG(P2P, TRACE, "Driver unprocessed Vender Specific IE\n");
-			ASSERT(FALSE);
+			DBGLOG(P2P, INFO, "Driver unprocessed Vender Specific IE\n");
 		}
 	} while (0);
 }

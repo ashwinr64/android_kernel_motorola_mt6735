@@ -38,14 +38,20 @@ static u64 last_get_time;
 void sched_get_nr_running_avg(int *avg, int *iowait_avg)
 {
 	int cpu;
-	u64 curr_time = sched_clock();
-	s64 diff = (s64) (curr_time - last_get_time);
+	u64 curr_time;
+	s64 diff;
 	u64 tmp_avg = 0, tmp_iowait = 0, old_lgt;
 	bool clk_faulty = 0;
 	u32 cpumask = 0;
 
 	*avg = 0;
 	*iowait_avg = 0;
+
+    preempt_disable_notrace();
+    curr_time = sched_clock();
+    preempt_enable_notrace();
+
+    diff = (s64) (curr_time - last_get_time);
 
 	if (!diff)
 		return;
@@ -107,7 +113,7 @@ EXPORT_SYMBOL(sched_get_nr_running_avg);
  *
  * Update average with latest nr_running value for CPU
  */
-void sched_update_nr_prod(int cpu, unsigned long nr_running, bool inc)
+void sched_update_nr_prod(int cpu, unsigned long nr_running, int inc)
 {
 	s64 diff;
 	u64 curr_time;
@@ -124,7 +130,7 @@ void sched_update_nr_prod(int cpu, unsigned long nr_running, bool inc)
 	/* ////////////////////////////////////// */
 
 	per_cpu(last_time, cpu) = curr_time;
-	per_cpu(nr, cpu) = nr_running + (inc ? 1 : -1);
+	per_cpu(nr, cpu) = nr_running + inc;
 
 	BUG_ON(per_cpu(nr, cpu) < 0);
 

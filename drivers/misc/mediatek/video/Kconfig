@@ -45,6 +45,11 @@ config CUSTOM_LCM_Y
 	default "0"
 	help
 	  To set CUSTOM_LCM_Y size
+config LCM_GPIO_UTIL
+	bool "LCM_GPIO_UTIL"
+	default n
+	help
+	  CONFIG_LCM_GPIO_UTIL
 
 config MTK_FB_SUPPORT_ASSERTION_LAYER
 	bool "AEE Assertion Layer Support"
@@ -75,3 +80,12 @@ config MTK_OD_SUPPORT
 	  not short enough to display clear moving objects.
 	  This feature allows to speed up the change time of each pixels.
 	  MUST fill the over-drive table correctly according to LCD property.
+config SINGLE_PANEL_OUTPUT
+	bool "SINGLE_PANEL_OUTPUT"
+	default n
+	help
+	  Decide whether to support single panel display feature.
+	  Panel and tv can't not display at the same time.
+	  When hdmi plug in, only show display in tv, panle will be black screen.
+	  And when hdmi plug out, panel will resume.
+

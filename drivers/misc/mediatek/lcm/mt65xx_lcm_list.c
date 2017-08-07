@@ -16,7 +16,7 @@
 #ifdef BUILD_LK
 #define LCD_DEBUG(fmt)  dprintf(CRITICAL, fmt)
 #else
-#define LCD_DEBUG(fmt, args...)  pr_notice("[KERNEL/LCM]"fmt, ##args)
+#define LCD_DEBUG(fmt, args...)  pr_debug("[KERNEL/LCM]"fmt, ##args)
 #endif
 
 LCM_DRIVER *lcm_driver_list[] = {
@@ -26,6 +26,11 @@ LCM_DRIVER *lcm_driver_list[] = {
 #if defined(OTM1284A_HD720_DSI_VDO_TM)
 	&otm1284a_hd720_dsi_vdo_tm_lcm_drv,
 #endif
+
+#if defined(TM050_TIANMA_720P_VDO)
+	&tm050_tianma_720p_vdo_drv,
+#endif
+
 #if defined(OTM1285A_HD720_DSI_VDO_TM)
 	&otm1285a_hd720_dsi_vdo_tm_lcm_drv,
 #endif
@@ -438,6 +443,10 @@ LCM_DRIVER *lcm_driver_list[] = {
 	&hx8392a_dsi_cmd_3lane_lcm_drv,
 #endif
 
+#if defined(HX8392A_DSI_CMD_3LANE_QHD)
+	&hx8392a_dsi_cmd_3lane_qhd_lcm_drv,
+#endif
+
 #if defined(HX8392A_DSI_CMD_WVGA)
 	&hx8392a_dsi_cmd_wvga_lcm_drv,
 #endif
@@ -612,6 +621,10 @@ LCM_DRIVER *lcm_driver_list[] = {
 
 #if defined(OTM9608_QHD_DSI_CMD)
 	&otm9608_qhd_dsi_cmd_drv,
+#endif
+
+#if defined(HX8394F_BOE_720P_VDO)
+	&hx8394f_boe_720p_vdo_drv,
 #endif
 
 #if defined(OTM9608_QHD_DSI_VDO)
@@ -917,6 +930,14 @@ LCM_DRIVER *lcm_driver_list[] = {
 	&nt35595_truly_fhd_dsi_vdo_lcm_drv,
 #endif
 
+#if defined(B080UAN01_2_WUXGA_DSI_VDO)
+	&b080uan01_2_wuxga_dsi_vdo_lcm_drv,
+#endif
+
+#if defined(DUMMY_LCD) //add by caozhg
+  &dummy_lcd_lcm_drv,
+#endif 
+
 #endif
 };
 
@@ -930,8 +951,32 @@ unsigned char lcm_name_list[][128] = {
 	"hx8392a_vdo_cmd",
 #endif
 
+#if defined(HX8392A_DSI_CMD_FWVGA)
+	"hx8392a_dsi_cmd_fwvga",
+#endif
+
 #if defined(OTM9608_QHD_DSI_CMD)
-	"otm9608_qhd_dsi_cmd",
+	"otm9608a_qhd_dsi_cmd",
+#endif
+
+#if defined(HX8394F_BOE_720P_VDO)
+	"hx8394f_boe_720p_vdo",
+#endif
+
+#if defined(OTM9608_QHD_DSI_VDO)
+	"otm9608a_qhd_dsi_vdo",
+#endif
+
+#if defined(R63417_FHD_DSI_CMD_TRULY_NT50358)
+	"r63417_fhd_dsi_cmd_truly_nt50358_drv",
+#endif
+
+#if defined(R63417_FHD_DSI_CMD_TRULY_NT50358_QHD)
+	"r63417_fhd_dsi_cmd_truly_nt50358_qhd_drv",
+#endif
+
+#if defined(R63417_FHD_DSI_VDO_TRULY_NT50358)
+	"r63417_fhd_dsi_vdo_truly_nt50358_drv",
 #endif
 };
 #endif

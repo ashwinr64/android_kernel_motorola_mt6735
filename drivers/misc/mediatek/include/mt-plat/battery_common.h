@@ -128,7 +128,7 @@ typedef enum {
 #define TEMP_POS_10_THRES_PLUS_X_DEGREE 16
 
 #define TEMP_POS_0_THRESHOLD  0
-#define TEMP_POS_0_THRES_PLUS_X_DEGREE 6
+#define TEMP_POS_0_THRES_PLUS_X_DEGREE 2
 
 #ifdef CONFIG_MTK_FAN5405_SUPPORT
 #define TEMP_NEG_10_THRESHOLD  0
@@ -381,9 +381,8 @@ void check_battery_exist(void);
 #ifdef DLPT_POWER_OFF_EN
 	extern int dlpt_check_power_off(void);
 #endif
-#ifdef BATTERY_CDP_WORKAROUND
+
 extern kal_bool is_usb_rdy(void);
-#endif
 extern unsigned int upmu_get_reg_value(unsigned int reg);
 
 

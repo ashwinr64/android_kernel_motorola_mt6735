@@ -138,6 +138,7 @@ struct scan_control {
  * From 0 .. 100.  Higher means more swappy.
  */
 int vm_swappiness = 60;
+int max_swappiness = 200;
 /*
  * The total number of pages which are beyond the high watermark within all
  * zones.
@@ -1165,7 +1166,7 @@ cull_mlocked:
 
 activate_locked:
 		/* Not a candidate for swapping, so reclaim swap space. */
-		if (PageSwapCache(page) && vm_swap_full())
+		if (PageSwapCache(page) && vm_swap_full(page_swap_info(page)))
 			try_to_free_swap(page);
 		VM_BUG_ON_PAGE(PageActive(page), page);
 		SetPageActive(page);
@@ -1416,7 +1417,7 @@ static int too_many_isolated(struct zone *zone, int file,
 {
 	unsigned long inactive, isolated;
 
-	if (current_is_kswapd())
+	if (current_is_kswapd() || sc->hibernation_mode)
 		return 0;
 
 	if (!global_reclaim(sc))
@@ -2069,7 +2070,7 @@ static void get_scan_count(struct lruvec *lruvec, int swappiness,
 	 * This scanning priority is essentially the inverse of IO cost.
 	 */
 	anon_prio = vmscan_swappiness(sc);
-	file_prio = 200 - anon_prio;
+	file_prio = max_swappiness - anon_prio;
 
 	anon  = get_lru_size(lruvec, LRU_ACTIVE_ANON) +
 		get_lru_size(lruvec, LRU_INACTIVE_ANON);
@@ -2656,6 +2657,11 @@ static unsigned long do_try_to_free_pages(struct zonelist *zonelist,
 	unsigned long total_scanned = 0;
 	unsigned long writeback_threshold;
 	bool zones_reclaimable;
+
+#ifdef CONFIG_FREEZER
+	if (unlikely(pm_freezing && !sc->hibernation_mode))
+		return 0;
+#endif
 
 	delayacct_freepages_start();
 
@@ -3544,6 +3550,11 @@ void wakeup_kswapd(struct zone *zone, int order, enum zone_type classzone_idx)
 	if (!populated_zone(zone))
 		return;
 
+#ifdef CONFIG_FREEZER
+	if (pm_freezing)
+		return;
+#endif
+
 	if (!cpuset_zone_allowed_hardwall(zone, GFP_KERNEL))
 		return;
 	pgdat = zone->zone_pgdat;
@@ -3569,7 +3580,7 @@ void wakeup_kswapd(struct zone *zone, int order, enum zone_type classzone_idx)
  * LRU order by reclaiming preferentially
  * inactive > active > active referenced > active mapped
  */
-unsigned long shrink_all_memory(unsigned long nr_to_reclaim)
+unsigned long shrink_memory_mask(unsigned long nr_to_reclaim, gfp_t mask)
 {
 	struct reclaim_state reclaim_state;
 	struct scan_control sc = {
@@ -3598,6 +3609,13 @@ unsigned long shrink_all_memory(unsigned long nr_to_reclaim)
 
 	return nr_reclaimed;
 }
+EXPORT_SYMBOL_GPL(shrink_memory_mask);
+
+unsigned long shrink_all_memory(unsigned long nr_to_reclaim)
+{
+	return shrink_memory_mask(nr_to_reclaim, GFP_HIGHUSER_MOVABLE);
+}
+EXPORT_SYMBOL_GPL(shrink_all_memory);
 #endif /* CONFIG_HIBERNATION */
 
 /* It's optimal to keep kswapds on the same CPUs as their memory, but

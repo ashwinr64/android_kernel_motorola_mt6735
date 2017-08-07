@@ -563,7 +563,7 @@ static BATTERY_VOLTAGE_ENUM select_jeita_cv(void)
 		cv_voltage = JEITA_TEMP_POS_45_TO_POS_60_CV_VOLTAGE;
 	} else if (g_temp_status == TEMP_POS_10_TO_POS_45) {
 		if (batt_cust_data.high_battery_voltage_support)
-			cv_voltage = BATTERY_VOLT_04_340000_V;
+			cv_voltage = BATTERY_VOLT_04_400000_V; //modify by caozhg
 		else
 			cv_voltage = JEITA_TEMP_POS_10_TO_POS_45_CV_VOLTAGE;
 	} else if (g_temp_status == TEMP_POS_0_TO_POS_10) {
@@ -768,76 +768,65 @@ void select_charging_current_bcct(void)
 		g_temp_input_CC_value = CHARGE_CURRENT_500_00_MA;
 	}
 #else
+/*
 	if (g_bcct_flag == 1)
 		g_temp_CC_value = g_bcct_value * 100;
 	if (g_bcct_input_flag == 1)
 		g_temp_input_CC_value = g_bcct_input_value * 100;
-/*
-		if ((BMT_status.charger_type == STANDARD_CHARGER) ||
+*/
+	if ((BMT_status.charger_type == STANDARD_HOST) ||
+            (BMT_status.charger_type == NONSTANDARD_CHARGER)) {
+                if (g_bcct_value < 100)
+		{
+			g_temp_input_CC_value = CHARGE_CURRENT_0_00_MA;
+                        g_temp_CC_value = CHARGE_CURRENT_0_00_MA;
+		}
+                else{
+                        g_temp_input_CC_value = CHARGE_CURRENT_500_00_MA;
+			g_temp_CC_value = CHARGE_CURRENT_500_00_MA;
+		}
+        }else if ((BMT_status.charger_type == STANDARD_CHARGER) ||
 		   (BMT_status.charger_type == CHARGING_HOST)) {
 		if (g_bcct_value < 550)
 			g_temp_CC_value = CHARGE_CURRENT_550_00_MA;
-		else
-			g_temp_CC_value = g_bcct_value * 100;
-
-		if (g_bcct_value < 650)
-			g_temp_CC_value = CHARGE_CURRENT_550_00_MA;
+		else if (g_bcct_value < 650)
+			g_temp_CC_value = CHARGE_CURRENT_650_00_MA;
 		else if (g_bcct_value < 750)
-			g_temp_CC_value = CHARGE_CURRENT_650_00_MA;
-		else if (g_bcct_value < 850)
 			g_temp_CC_value = CHARGE_CURRENT_750_00_MA;
-		else if (g_bcct_value < 950)
+		else if (g_bcct_value < 850)
 			g_temp_CC_value = CHARGE_CURRENT_850_00_MA;
-		else if (g_bcct_value < 1050)
+		else if (g_bcct_value < 950)
 			g_temp_CC_value = CHARGE_CURRENT_950_00_MA;
-		else if (g_bcct_value < 1150)
+		else if (g_bcct_value < 1050)
 			g_temp_CC_value = CHARGE_CURRENT_1050_00_MA;
-		else if (g_bcct_value < 1250)
+		else if (g_bcct_value < 1150)
 			g_temp_CC_value = CHARGE_CURRENT_1150_00_MA;
-		else if (g_bcct_value == 1250)
+		else if (g_bcct_value < 1250)
 			g_temp_CC_value = CHARGE_CURRENT_1250_00_MA;
-		else if (g_bcct_value == 1350)
+		else if (g_bcct_value < 1350)
 			g_temp_CC_value = CHARGE_CURRENT_1350_00_MA;
-		else if (g_bcct_value == 1450)
+		else if (g_bcct_value < 1450)
 			g_temp_CC_value = CHARGE_CURRENT_1450_00_MA;
-		else if (g_bcct_value == 1550)
+		else if (g_bcct_value < 1550)
 			g_temp_CC_value = CHARGE_CURRENT_1550_00_MA;
-		else if (g_bcct_value == 1650)
+		else if (g_bcct_value < 1650)
 			g_temp_CC_value = CHARGE_CURRENT_1650_00_MA;
-		else if (g_bcct_value == 1750)
+		else if (g_bcct_value < 1750)
 			g_temp_CC_value = CHARGE_CURRENT_1750_00_MA;
-		else if (g_bcct_value == 1850)
+		else if (g_bcct_value < 1850)
 			g_temp_CC_value = CHARGE_CURRENT_1850_00_MA;
-		else if (g_bcct_value == 1950)
+		else if (g_bcct_value < 1950)
 			g_temp_CC_value = CHARGE_CURRENT_1950_00_MA;
-		else if (g_bcct_value == 2050)
+		else if (g_bcct_value <= 2050)
 			g_temp_CC_value = CHARGE_CURRENT_2050_00_MA;
-		else if (g_bcct_value == 2150)
-			g_temp_CC_value = CHARGE_CURRENT_2150_00_MA;
-		else if (g_bcct_value == 2250)
-			g_temp_CC_value = CHARGE_CURRENT_2250_00_MA;
-		else if (g_bcct_value == 2350)
-			g_temp_CC_value = CHARGE_CURRENT_2350_00_MA;
-		else if (g_bcct_value == 2450)
-			g_temp_CC_value = CHARGE_CURRENT_2450_00_MA;
-		else if (g_bcct_value == 2550)
-			g_temp_CC_value = CHARGE_CURRENT_2550_00_MA;
-		else if (g_bcct_value == 2650)
-			g_temp_CC_value = CHARGE_CURRENT_2650_00_MA;
-		else if (g_bcct_value == 2750)
-			g_temp_CC_value = CHARGE_CURRENT_2750_00_MA;
-		else if (g_bcct_value == 2850)
-			g_temp_CC_value = CHARGE_CURRENT_2850_00_MA;
-		else if (g_bcct_value == 2950)
-			g_temp_CC_value = CHARGE_CURRENT_2950_00_MA;
 		else
 			g_temp_CC_value = CHARGE_CURRENT_650_00_MA;
-
 	} else {
 		g_temp_CC_value = CHARGE_CURRENT_500_00_MA;
 	}
-*/
+
 #endif
+	battery_log(BAT_LOG_CRTI, "[BATTERY]select_charging_current_bcct input:%d,cc: %d \r\n",g_temp_input_CC_value,g_temp_CC_value);
 }
 
 
@@ -1039,19 +1028,23 @@ static unsigned int charging_full_check(void)
 	unsigned int status;
 
 	battery_charging_control(CHARGING_CMD_GET_CHARGING_STATUS, &status);
-	if (status == KAL_TRUE) {
+	if (status == KAL_TRUE && BMT_status.UI_SOC == 100) { //modify by caozhg
 		g_full_check_count++;
 		if (g_full_check_count >= FULL_CHECK_TIMES)
 			return KAL_TRUE;
 		else
 			return KAL_FALSE;
-	} /*else {*/
+	} else {
 		g_full_check_count = 0;
 		return status;
-	/*}*/
+	}
 }
 
-
+extern int g_thermal_limit_current_level;
+void thermal_pchr_turn_on_charging(void)
+{
+        pchr_turn_on_charging();
+}
 static void pchr_turn_on_charging(void)
 {
 #if !defined(CONFIG_MTK_JEITA_STANDARD_SUPPORT)
@@ -1098,7 +1091,6 @@ static void pchr_turn_on_charging(void)
 #ifndef CONFIG_MTK_SWITCH_INPUT_OUTPUT_CURRENT_SUPPORT
 		} else if (g_bcct_flag == 1) {
 			select_charging_current_bcct();
-
 			battery_log(BAT_LOG_FULL, "[BATTERY] select_charging_current_bcct !\n");
 		} else {
 			select_charging_current();
@@ -1106,7 +1098,7 @@ static void pchr_turn_on_charging(void)
 			battery_log(BAT_LOG_FULL, "[BATTERY] select_charging_current !\n");
 		}
 #else
-		} else if (g_bcct_flag == 1 || g_bcct_input_flag == 1) {
+		} else if ( (g_bcct_flag == 1 || g_bcct_input_flag == 1)) { //modify by caozhg for test
 			select_charging_current();
 			select_charging_current_bcct();
 			battery_log(BAT_LOG_FULL, "[BATTERY] select_charging_curret_bcct !\n");
@@ -1126,6 +1118,23 @@ static void pchr_turn_on_charging(void)
 			battery_log(BAT_LOG_CRTI,
 				    "[BATTERY] charging current is set 0mA, turn off charging !\r\n");
 		} else {
+
+/*Lenovo-sw: AIOROW-4398 thermal limit current*/
+        switch(g_thermal_limit_current_level){
+        case 0:
+                break;
+        case 1:
+        case 2:
+        case 3:
+                if(g_temp_CC_value > CHARGE_CURRENT_700_00_MA)
+                        g_temp_CC_value = CHARGE_CURRENT_700_00_MA ;
+                break;
+        default:
+                break;
+        }
+        printk(KERN_ERR "thermal limit level:%d, charger current:%d,input current:%d \n",g_thermal_limit_current_level,g_temp_CC_value,g_temp_input_CC_value);
+/*Lenovo-sw: AIOROW-4398 thermal limit current*/
+
 			battery_charging_control(CHARGING_CMD_SET_INPUT_CURRENT,
 						 &g_temp_input_CC_value);
 			battery_charging_control(CHARGING_CMD_SET_CURRENT, &g_temp_CC_value);
@@ -1133,7 +1142,7 @@ static void pchr_turn_on_charging(void)
 			/*Set CV Voltage */
 #if !defined(CONFIG_MTK_JEITA_STANDARD_SUPPORT)
 			if (batt_cust_data.high_battery_voltage_support)
-				cv_voltage = BATTERY_VOLT_04_340000_V;
+				cv_voltage = BATTERY_VOLT_04_400000_V; //modify by caozhg
 			else
 				cv_voltage = BATTERY_VOLT_04_200000_V;
 
@@ -1213,6 +1222,8 @@ PMU_STATUS BAT_ConstantCurrentModeAction(void)
 
 PMU_STATUS BAT_BatteryFullAction(void)
 {
+	unsigned int charging_enable = KAL_FALSE;//add by caozhg
+	unsigned int status; //add by caozhg
 	battery_log(BAT_LOG_CRTI, "[BATTERY] Battery full !!\n\r");
 
 	BMT_status.bat_full = KAL_TRUE;
@@ -1223,7 +1234,10 @@ PMU_STATUS BAT_BatteryFullAction(void)
 	BMT_status.POSTFULL_charging_time = 0;
 	BMT_status.bat_in_recharging_state = KAL_FALSE;
 
-	if (charging_full_check() == KAL_FALSE) {
+	battery_charging_control(CHARGING_CMD_GET_CHARGING_STATUS, &status);
+	if (status == KAL_FALSE) {
+	//if (charging_full_check() == KAL_FALSE) {
+	//if (BMT_status.bat_vol < 4300) {
 		battery_log(BAT_LOG_CRTI, "[BATTERY] Battery Re-charging !!\n\r");
 
 		BMT_status.bat_in_recharging_state = KAL_TRUE;
@@ -1236,7 +1250,8 @@ PMU_STATUS BAT_BatteryFullAction(void)
 		pep_det_rechg = KAL_TRUE;
 #endif
 	}
-
+	/*  Disable charging */
+	battery_charging_control(CHARGING_CMD_ENABLE, &charging_enable); //add by caozhg
 
 	return PMU_STATUS_OK;
 }

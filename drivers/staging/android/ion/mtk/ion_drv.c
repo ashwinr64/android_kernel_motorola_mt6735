@@ -365,7 +365,7 @@ void ion_dma_map_area_va(void *start, size_t size, ION_DMA_DIR dir)
 	else if (dir == ION_DMA_TO_DEVICE)
 		dmac_map_area(start, size, DMA_TO_DEVICE);
 	else if (dir == ION_DMA_BIDIRECTIONAL)
-		dmac_map_area(start, size, ION_DMA_BIDIRECTIONAL);
+		dmac_map_area(start, size, DMA_BIDIRECTIONAL);
 }
 
 void ion_dma_unmap_area_va(void *start, size_t size, ION_DMA_DIR dir)
@@ -375,7 +375,7 @@ void ion_dma_unmap_area_va(void *start, size_t size, ION_DMA_DIR dir)
 	else if (dir == ION_DMA_TO_DEVICE)
 		dmac_unmap_area(start, size, DMA_TO_DEVICE);
 	else if (dir == ION_DMA_BIDIRECTIONAL)
-		dmac_unmap_area(start, size, ION_DMA_BIDIRECTIONAL);
+		dmac_unmap_area(start, size, DMA_BIDIRECTIONAL);
 }
 
 void ion_cache_flush_all(void)
@@ -615,15 +615,6 @@ int ion_drv_remove(struct platform_device *pdev)
 }
 
 static struct ion_platform_heap ion_drv_platform_heaps[] = {
-		{
-				.type = ION_HEAP_TYPE_SYSTEM_CONTIG,
-				.id = ION_HEAP_TYPE_SYSTEM_CONTIG,
-				.name = "ion_system_contig_heap",
-				.base = 0,
-				.size = 0,
-				.align = 0,
-				.priv = NULL,
-		},
 		{
 				.type = ION_HEAP_TYPE_MULTIMEDIA,
 				.id = ION_HEAP_TYPE_MULTIMEDIA,
